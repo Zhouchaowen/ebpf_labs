@@ -1,26 +1,37 @@
 package main
 
 import (
+	"flag"
+	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 	"log"
 	"net"
-	"os"
 	"time"
 )
 
 // $BPF_CLANG and $BPF_CFLAGS are set by the Makefile.
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf packets_record.c -- -I../headers
 
-func main() {
-	if len(os.Args) < 2 {
-		log.Fatalf("Please specify a network interface")
-	}
+var (
+	InterfaceName string
+	Option        string
+)
 
+func init() {
+	flag.StringVar(&InterfaceName, "n", "lo", "a network interface name")
+	flag.StringVar(&Option, "o", "xdp_pass", "xdp option xdp_pass|xdp_drop|xdp_abort")
+}
+
+func main() {
+	flag.Parse()
+
+	if len(InterfaceName) == 0 || len(Option) == 0 {
+		log.Fatalf("Please specify a network interface and xdp option")
+	}
 	// Look up the network interface by name.
-	ifaceName := os.Args[1]
-	iface, err := net.InterfaceByName(ifaceName)
+	iface, err := net.InterfaceByName(InterfaceName)
 	if err != nil {
-		log.Fatalf("lookup network iface %q: %s", ifaceName, err)
+		log.Fatalf("lookup network iface %s: %s", InterfaceName, err)
 	}
 
 	// Load pre-compiled programs into the kernel.
@@ -30,9 +41,27 @@ func main() {
 	}
 	defer objs.Close()
 
+	// Choose differently xdp option
+	var xdpFunc *ebpf.Program
+	var OptionKey uint32
+
+	switch Option {
+	case "xdp_pass":
+		xdpFunc = objs.XdpPassFunc
+		OptionKey = 2
+	case "xdp_drop":
+		xdpFunc = objs.XdpDropFunc
+		OptionKey = 1
+	case "xdp_abort":
+		xdpFunc = objs.XdpAbortFunc
+		OptionKey = 0
+	default:
+		log.Fatalf("xdp option error, only support xdp_pass|xdp_drop|xdp_abort")
+	}
+
 	// Attach the program.
 	l, err := link.AttachXDP(link.XDPOptions{
-		Program:   objs.XdpPassFunc,
+		Program:   xdpFunc,
 		Interface: iface.Index,
 	})
 	if err != nil {
@@ -53,7 +82,7 @@ func main() {
 	log.Println("Waiting for events..")
 	for range ticker.C {
 		var dataRecs []DataRec
-		if err := objs.XdpStatsMap.Lookup(uint32(2), &dataRecs); err != nil {
+		if err := objs.XdpStatsMap.Lookup(OptionKey, &dataRecs); err != nil {
 			log.Fatalf("reading map: %v", err)
 		}
 
@@ -65,6 +94,6 @@ func main() {
 			rxBytes += v.RxBytes
 		}
 
-		log.Printf("CUP CORE %d RxPackets %d RxBytes %d\n", len(dataRecs), rxPackets, rxBytes)
+		log.Printf("Option %s CUP CORE %d RxPackets %d RxBytes %d\n", Option, len(dataRecs), rxPackets, rxBytes)
 	}
 }
