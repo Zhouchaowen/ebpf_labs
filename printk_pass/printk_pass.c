@@ -2,9 +2,9 @@
 #include "common.h"
 
 SEC("xdp")
-int xdp_simple(struct xdp_md *ctx)
+int xdp_simple_func(struct xdp_md *ctx)
 {
-    bpf_printk("xdp pass, hello xdp\n");
+    bpf_printk("xdp pass, hello xdp");
 	return XDP_PASS;
 }
 
