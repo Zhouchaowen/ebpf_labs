@@ -3,8 +3,6 @@
 #include "bpf_endian.h"
 #include "common.h"
 
-char __license[] SEC("license") = "Dual MIT/GPL";
-
 #define MAX_MAP_ENTRIES 16
 
 /* Define an LRU hash map for storing packet count by source IPv4 address */
@@ -45,7 +43,7 @@ static __always_inline int parse_ip_src_addr(struct xdp_md *ctx, __u32 *ip_src_a
 	return 1;
 }
 
-SEC("ipv4_parse")
+SEC("xdp_ipv4_parse")
 int ipv4_parse_func(struct xdp_md *ctx) {
 	__u32 ip;
 	if (!parse_ip_src_addr(ctx, &ip)) {
@@ -68,3 +66,5 @@ done:
 	// Try changing this to XDP_DROP and see what happens!
 	return XDP_PASS;
 }
+
+char __license[] SEC("license") = "Dual MIT/GPL";

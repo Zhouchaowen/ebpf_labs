@@ -8,7 +8,8 @@ struct {
 	__type(value, __u8);
 } rules SEC(".maps");
 
-SEC("ipv4_firewall")
+
+SEC("xdp_ipv4_firewall")
 int ipv4_firewall_func(struct xdp_md *ctx)
 {
     void *data_end = (void *)(unsigned long)ctx->data_end;
@@ -49,4 +50,4 @@ int ipv4_firewall_func(struct xdp_md *ctx)
 	return XDP_PASS;
 }
 
-char _license[] SEC("license") = "GPL";
+char __license[] SEC("license") = "Dual MIT/GPL";

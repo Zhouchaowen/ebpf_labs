@@ -31,12 +31,6 @@ func init() {
 	flag.IntVar(&Port, "p", 8080, "server port")
 }
 
-func printHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "hello")
-	})
-}
-
 func main() {
 	flag.Parse()
 
@@ -70,7 +64,34 @@ func main() {
 	log.Printf("Press Ctrl-C to exit and remove the program")
 
 	mu := http.NewServeMux()
-	mu.HandleFunc("/add", func(w http.ResponseWriter, req *http.Request) {
+	mu.Handle("/add", AddIPV4Handler(objs))
+
+	server := http.Server{
+		Addr:    fmt.Sprintf("%s:%d", Ip, Port),
+		Handler: mu,
+	}
+
+	go func() {
+		if err := server.ListenAndServe(); err != nil {
+			log.Println("server start failed")
+		}
+	}()
+
+	stopper := make(chan os.Signal, 1)
+	signal.Notify(stopper, os.Interrupt)
+
+	<-stopper
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Println("server shutdown failed")
+	}
+}
+
+func AddIPV4Handler(objs bpfObjects) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ipAddr := req.URL.Query().Get("ip")
 		interceptStr := req.URL.Query().Get("inter")
 
@@ -135,27 +156,4 @@ func main() {
 		w.Write(jsonBytes)
 		return
 	})
-
-	server := http.Server{
-		Addr:    fmt.Sprintf("%s:%d", Ip, Port),
-		Handler: mu,
-	}
-
-	go func() {
-		if err := server.ListenAndServe(); err != nil {
-			log.Println("server start failed")
-		}
-	}()
-
-	stopper := make(chan os.Signal, 1)
-	signal.Notify(stopper, os.Interrupt)
-
-	<-stopper
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := server.Shutdown(ctx); err != nil {
-		log.Println("server shutdown failed")
-	}
 }
