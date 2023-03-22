@@ -20,4 +20,5 @@ gen:
 	go generate ./...
 
 run:
-	go run -exec sudo main.go bpf_bpfel.go lo
+	go run -exec sudo main.go bpf_bpfel.go -n lo
+

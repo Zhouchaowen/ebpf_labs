@@ -9,10 +9,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net"
-	"os"
 	"strings"
 	"time"
 
@@ -21,18 +21,26 @@ import (
 )
 
 // $BPF_CLANG and $BPF_CFLAGS are set by the Makefile.
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf ipv4_parse.c -- -I../headers
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf parse_ipv4.c -- -I../headers
+
+var (
+	InterfaceName string
+)
+
+func init() {
+	flag.StringVar(&InterfaceName, "n", "lo", "a network interface name")
+}
 
 func main() {
-	if len(os.Args) < 2 {
+	flag.Parse()
+
+	if len(InterfaceName) == 0 {
 		log.Fatalf("Please specify a network interface")
 	}
-
 	// Look up the network interface by name.
-	ifaceName := os.Args[1]
-	iface, err := net.InterfaceByName(ifaceName)
+	iface, err := net.InterfaceByName(InterfaceName)
 	if err != nil {
-		log.Fatalf("lookup network iface %q: %s", ifaceName, err)
+		log.Fatalf("lookup network iface %q: %s", InterfaceName, err)
 	}
 
 	// Load pre-compiled programs into the kernel.
@@ -44,7 +52,7 @@ func main() {
 
 	// Attach the program.
 	l, err := link.AttachXDP(link.XDPOptions{
-		Program:   objs.Ipv4ParseFunc,
+		Program:   objs.ParseIpv4Func,
 		Interface: iface.Index,
 	})
 	if err != nil {

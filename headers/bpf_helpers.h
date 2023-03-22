@@ -259,4 +259,10 @@ enum libbpf_tristate {
 /* Helper macro to print out debug messages */
 #define bpf_printk(fmt, args...) ___bpf_pick_printk(args)(fmt, ##args)
 
+
+#define __darwin_obsz0(object) __builtin_object_size (object, 0)
+#define __darwin_obsz(object) __builtin_object_size (object, _USE_FORTIFY_LEVEL > 1 ? 1 : 0)
+
+#define memset(dest, ...) \
+		__builtin___memset_chk (dest, __VA_ARGS__, __darwin_obsz0 (dest))
 #endif

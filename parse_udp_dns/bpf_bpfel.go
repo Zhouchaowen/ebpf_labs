@@ -54,14 +54,14 @@ type bpfSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type bpfProgramSpecs struct {
-	Ipv4ParseFunc *ebpf.ProgramSpec `ebpf:"ipv4_parse_func"`
+	ParseDnsFunc *ebpf.ProgramSpec `ebpf:"parse_dns_func"`
 }
 
 // bpfMapSpecs contains maps before they are loaded into the kernel.
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type bpfMapSpecs struct {
-	IpStatsMap *ebpf.MapSpec `ebpf:"ip_stats_map"`
+	Rb *ebpf.MapSpec `ebpf:"rb"`
 }
 
 // bpfObjects contains all objects after they have been loaded into the kernel.
@@ -83,12 +83,12 @@ func (o *bpfObjects) Close() error {
 //
 // It can be passed to loadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type bpfMaps struct {
-	IpStatsMap *ebpf.Map `ebpf:"ip_stats_map"`
+	Rb *ebpf.Map `ebpf:"rb"`
 }
 
 func (m *bpfMaps) Close() error {
 	return _BpfClose(
-		m.IpStatsMap,
+		m.Rb,
 	)
 }
 
@@ -96,12 +96,12 @@ func (m *bpfMaps) Close() error {
 //
 // It can be passed to loadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type bpfPrograms struct {
-	Ipv4ParseFunc *ebpf.Program `ebpf:"ipv4_parse_func"`
+	ParseDnsFunc *ebpf.Program `ebpf:"parse_dns_func"`
 }
 
 func (p *bpfPrograms) Close() error {
 	return _BpfClose(
-		p.Ipv4ParseFunc,
+		p.ParseDnsFunc,
 	)
 }
 

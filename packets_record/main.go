@@ -72,16 +72,11 @@ func main() {
 	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
 	log.Printf("Press Ctrl-C to exit and remove the program")
 
-	type DataRec struct {
-		RxPackets uint64
-		RxBytes   uint64
-	}
-
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	log.Println("Waiting for events..")
 	for range ticker.C {
-		var dataRecs []DataRec
+		var dataRecs []bpfDataRec
 		if err := objs.XdpStatsMap.Lookup(OptionKey, &dataRecs); err != nil {
 			log.Fatalf("reading map: %v", err)
 		}

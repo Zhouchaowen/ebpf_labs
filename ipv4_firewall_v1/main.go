@@ -60,9 +60,6 @@ func main() {
 	}
 	defer l.Close()
 
-	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
-	log.Printf("Press Ctrl-C to exit and remove the program")
-
 	mu := http.NewServeMux()
 	mu.Handle("/add", AddIPV4Handler(objs))
 
@@ -70,6 +67,9 @@ func main() {
 		Addr:    fmt.Sprintf("%s:%d", Ip, Port),
 		Handler: mu,
 	}
+	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
+	log.Printf("Listening and serving HTTP on %s:%d", Ip, Port)
+	log.Printf("Press Ctrl-C to exit and remove the program")
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {

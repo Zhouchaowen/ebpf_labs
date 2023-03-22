@@ -99,18 +99,18 @@ func main() {
 	}()
 
 	log.Printf("Attached XDP program to iface %q (index %d)", iface.Name, iface.Index)
+	log.Printf("Listening and serving HTTP on %s:%d", Ip, Port)
 	log.Printf("Press Ctrl-C to exit and remove the program")
 	log.Println("Waiting for events..")
 
 	type bpfEvent struct {
 		// ipv4——firewall.c event.protocol定义为u8但是由于golang内存对齐导致读取错位, 所以必须要补齐位数 uint32
 		Protocol       uint8 `json:"protocol"`
-		_              [3]uint8
+		Flag           uint8 `json:"flag"` // 流量是否拦截   0未拦截 1 已拦截
+		_              [2]uint8
 		SAddr          uint32 `json:"s_addr"`
 		DAddr          uint32 `json:"d_addr"`
 		IngressIfIndex uint32 `json:"ingress_if_index"`
-		Flag           uint8  `json:"flag"` // 流量是否拦截   0未拦截 1 已拦截
-		_              [3]uint8
 	}
 
 	var event bpfEvent

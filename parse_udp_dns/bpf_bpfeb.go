@@ -13,11 +13,6 @@ import (
 	"github.com/cilium/ebpf"
 )
 
-type bpfDataRec struct {
-	RxPackets uint64
-	RxBytes   uint64
-}
-
 // loadBpf returns the embedded CollectionSpec for bpf.
 func loadBpf() (*ebpf.CollectionSpec, error) {
 	reader := bytes.NewReader(_BpfBytes)
@@ -59,16 +54,14 @@ type bpfSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type bpfProgramSpecs struct {
-	XdpAbortFunc *ebpf.ProgramSpec `ebpf:"xdp_abort_func"`
-	XdpDropFunc  *ebpf.ProgramSpec `ebpf:"xdp_drop_func"`
-	XdpPassFunc  *ebpf.ProgramSpec `ebpf:"xdp_pass_func"`
+	ParseDnsFunc *ebpf.ProgramSpec `ebpf:"parse_dns_func"`
 }
 
 // bpfMapSpecs contains maps before they are loaded into the kernel.
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type bpfMapSpecs struct {
-	XdpStatsMap *ebpf.MapSpec `ebpf:"xdp_stats_map"`
+	Rb *ebpf.MapSpec `ebpf:"rb"`
 }
 
 // bpfObjects contains all objects after they have been loaded into the kernel.
@@ -90,12 +83,12 @@ func (o *bpfObjects) Close() error {
 //
 // It can be passed to loadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type bpfMaps struct {
-	XdpStatsMap *ebpf.Map `ebpf:"xdp_stats_map"`
+	Rb *ebpf.Map `ebpf:"rb"`
 }
 
 func (m *bpfMaps) Close() error {
 	return _BpfClose(
-		m.XdpStatsMap,
+		m.Rb,
 	)
 }
 
@@ -103,16 +96,12 @@ func (m *bpfMaps) Close() error {
 //
 // It can be passed to loadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type bpfPrograms struct {
-	XdpAbortFunc *ebpf.Program `ebpf:"xdp_abort_func"`
-	XdpDropFunc  *ebpf.Program `ebpf:"xdp_drop_func"`
-	XdpPassFunc  *ebpf.Program `ebpf:"xdp_pass_func"`
+	ParseDnsFunc *ebpf.Program `ebpf:"parse_dns_func"`
 }
 
 func (p *bpfPrograms) Close() error {
 	return _BpfClose(
-		p.XdpAbortFunc,
-		p.XdpDropFunc,
-		p.XdpPassFunc,
+		p.ParseDnsFunc,
 	)
 }
 

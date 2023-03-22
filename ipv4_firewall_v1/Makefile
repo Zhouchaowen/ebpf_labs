@@ -6,10 +6,6 @@ STRIP ?= llvm-strip-14
 OBJCOPY ?= llvm-objcopy-14
 CFLAGS := -O2 -g -Wall -Werror $(CFLAGS)
 
-clean:
-	-$(RM) testdata/*.elf
-	-$(RM) btf/testdata/*.elf
-
 format:
 	find . -type f -name "*.c" | xargs clang-format -i
 
@@ -20,4 +16,4 @@ gen:
 	go generate ./...
 
 run:
-	go run -exec sudo main.go bpf_bpfel.go lo
+	go run -exec sudo main.go bpf_bpfel.go -n lo
