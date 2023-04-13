@@ -14,7 +14,7 @@ import (
 )
 
 // $BPF_CLANG and $BPF_CFLAGS are set by the Makefile.
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf parse_udp_dns.c -- -I../headers
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf parse_udp_dns.c --type event -- -I../headers
 
 var (
 	InterfaceName string
@@ -80,26 +80,24 @@ func main() {
 	log.Printf("Waiting for events..")
 
 	type bpfEvent struct {
-		// ipv4——firewall.c event.protocol定义为u8但是由于golang内存对齐导致读取错位, 所以必须要补齐位数 uint32
-		Protocol      uint8 `json:"protocol"`
-		Rd            uint8 `json:"rd"`
-		Tc            uint8 `json:"tc"`
-		Aa            uint8 `json:"aa"`
-		Opcode        uint8 `json:"opcode"`
-		Qr            uint8 `json:"qr"`
-		RCode         uint8 `json:"r_code"`
-		Cd            uint8 `json:"cd"`
-		Ad            uint8 `json:"ad"`
-		Z             uint8 `json:"z"`
-		Ra            uint8 `json:"ra"`
-		_             uint8
+		Protocol      uint8      `json:"protocol"`
+		Rd            uint8      `json:"rd"`
+		Tc            uint8      `json:"tc"`
+		Aa            uint8      `json:"aa"`
+		Opcode        uint8      `json:"opcode"`
+		Qr            uint8      `json:"qr"`
+		RCode         uint8      `json:"r_code"`
+		Cd            uint8      `json:"cd"`
+		Ad            uint8      `json:"ad"`
+		Z             uint8      `json:"z"`
+		Ra            uint8      `json:"ra"`
 		TransactionId uint16     `json:"transaction_id"`
 		QCount        uint16     `json:"q_count"`
 		AddCount      uint16     `json:"add_count"`
 		QType         uint16     `json:"q_type"`
 		QClass        uint16     `json:"q_class"`
 		Source        uint16     `json:"source"`
-		Dest          uint32     `json:"dest"`
+		Dest          uint16     `json:"dest"`
 		SAddr         uint32     `json:"s_addr"`
 		DAddr         uint32     `json:"d_addr"`
 		Name          [256]uint8 `json:"name"`

@@ -1,6 +1,3 @@
-
-#define IPPROTO_UDP 17
-
 #define MAX_DNS_NAME_LENGTH 256
 
 struct eth_hdr {
@@ -46,9 +43,4 @@ struct dns_hdr {
   __u16 ans_count;  // Number of answer RRs
   __u16 auth_count; // Number of authority RRs
   __u16 add_count;  // Number of resource RRs
-};
-
-struct dns_query {
-  __u16 q_type;
-  __u16 q_class;
 };

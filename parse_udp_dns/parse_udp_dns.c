@@ -2,12 +2,20 @@
 #include "bpf_endian.h"
 #include "common.h"
 #include "protocol_hdr.h"
+#include <netinet/in.h>
 
 struct {
   __uint(type, BPF_MAP_TYPE_RINGBUF);
   __uint(max_entries, 256 * 1024 /* 256 KB */);
 } rb SEC(".maps");
 
+struct dns_query {
+  __u16 q_type;
+  __u16 q_class;
+};
+
+// #issues/1 @cody0704 这样就可以跟Go程序式正确解析相同的结构的长度，就不要用额外做对齐
+#pragma pack(push, 1)
 struct event {
   __u8 protocol;
   __u8 rd;     // 所需的递归
@@ -31,6 +39,7 @@ struct event {
   __u32 d_addr;
   char name[256];
 };
+#pragma pack(pop)
 
 // 数组拷贝
 static __inline void *memcpy(void *dest, const void *src, u64 count) {
