@@ -4,10 +4,8 @@
 CLANG ?= clang-14
 STRIP ?= llvm-strip-14
 OBJCOPY ?= llvm-objcopy-14
-CFLAGS := -O2 -g -Wall -Werror -D DEBUG $(CFLAGS)
-
-# The network card name
-NET=lo
+CFLAGS := -O2 -g -Wall -Werror $(CFLAGS)
+DEV ?= lo
 
 format:
 	find . -type f -name "*.c" | xargs clang-format -i
@@ -15,8 +13,9 @@ format:
 # $BPF_CLANG is used in go:generate invocations.
 gen: export BPF_CLANG := $(CLANG)
 gen: export BPF_CFLAGS := $(CFLAGS)
+gen: export GO111MODULE=on
 gen:
 	go generate ./...
 
 run:
-	go run -exec sudo main.go bpf_bpfel.go -n $(NET)
+	go run -exec sudo main.go bpf_bpfel.go -n lo

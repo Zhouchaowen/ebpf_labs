@@ -4,10 +4,7 @@
 CLANG ?= clang-14
 STRIP ?= llvm-strip-14
 OBJCOPY ?= llvm-objcopy-14
-CFLAGS := -O2 -g -Wall -Werror -D DEBUG $(CFLAGS)
-
-# The network card name
-NET=lo
+CFLAGS := -O2 -g -Wall -Werror $(CFLAGS)
 
 format:
 	find . -type f -name "*.c" | xargs clang-format -i
@@ -19,4 +16,4 @@ gen:
 	go generate ./...
 
 run:
-	go run -exec sudo main.go bpf_bpfel.go -n $(NET)
+	go run -exec sudo main.go bpf_bpfel.go -n lo

@@ -1,3 +1,4 @@
+//go:build ignore
 #include "bpf_endian.h"
 #include "common.h"
 #include "protocol_hdr.h"

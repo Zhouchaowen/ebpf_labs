@@ -4,10 +4,15 @@
 CLANG ?= clang-14
 STRIP ?= llvm-strip-14
 OBJCOPY ?= llvm-objcopy-14
-CFLAGS := -O2 -g -Wall -Werror -D DEBUG $(CFLAGS)
+CFLAGS := -O2 -g -Wall -Werror $(CFLAGS)
+DEV ?= lo
 
-# The network card name
-NET=lo
+define attach_tc
+    tc qdisc add dev $(DEV) clsact;
+    tc filter add dev $(DEV) egress bpf da obj bpf_bpfel.o sec tc;
+    tc filter show dev $(DEV) egress;
+    echo "Please run 'sudo cat /sys/kernel/debug/tracing/trace_pipe' to see output of the BPF programs";
+endef
 
 format:
 	find . -type f -name "*.c" | xargs clang-format -i
@@ -18,5 +23,11 @@ gen: export BPF_CFLAGS := $(CFLAGS)
 gen:
 	go generate ./...
 
+attach:
+	@$(attach_tc)
+
+detach:
+	tc qdisc del dev $(DEV) clsact
+
 run:
-	go run -exec sudo main.go bpf_bpfel.go -n $(NET)
+	go run -exec sudo main.go bpf_bpfel.go -n lo

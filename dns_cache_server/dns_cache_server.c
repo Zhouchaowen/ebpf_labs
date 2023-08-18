@@ -1,3 +1,4 @@
+//go:build ignore
 #define DEFAULT_ACTION XDP_PASS
 
 #include "bpf_endian.h"
