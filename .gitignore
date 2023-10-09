@@ -4,6 +4,9 @@
 *.dll
 *.so
 *.dylib
+*.o
+*_bpfel.go
+*_bpfeb.go
 
 # Test binary, built with `go test -c`
 *.test
@@ -14,7 +17,7 @@
 # Dependency directories (remove the comment below to include it)
 vendor/
 test/
-libbpf/
+books/
 
 # sh
 sync.sh
