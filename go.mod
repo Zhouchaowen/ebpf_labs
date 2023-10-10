@@ -1,4 +1,4 @@
-module xdp_labs
+module ebpf_labs
 
 go 1.18
 

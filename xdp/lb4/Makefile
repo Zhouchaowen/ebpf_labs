@@ -28,4 +28,4 @@ run:
 	go run -exec sudo main.go bpf_bpfel.go -n $(NIC)
 
 build:
-	docker run --rm  -v $(GRANDPARENT_DIR):/root/ebpf_labs $(IMAGE) bash -c "cd /root/ebpf_labs/xdp/printk_pass && make gen"
+	docker run --rm  -v $(GRANDPARENT_DIR):/root/ebpf_labs $(IMAGE) bash -c "cd /root/ebpf_labs/xdp/lb4 && make gen"

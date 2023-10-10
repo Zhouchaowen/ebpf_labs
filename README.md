@@ -1,7 +1,23 @@
-# xdp_labs
-A series of xdp experiments
+# ebpf_labs
+A series of ebpf_labs experiments
 
+# how to compile
 
+## require
+
+- Kernel >= 5.4.0
+- ghcr.io/cilium/ebpf-builder@1694533004
+
+## clone
+```bash
+git clone 
+```
+
+## compile
+> 示例：编译 ebpf_labs/xdp/printk_pass
+```bash
+cd ebpf_labs/xdp/printk_pass && make build
+```
 
 ## Reference
 
