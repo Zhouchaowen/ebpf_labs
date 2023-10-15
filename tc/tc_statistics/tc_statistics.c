@@ -1,32 +1,21 @@
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <linux/in.h>
-#include <linux/bpf.h>
-#include <linux/ip.h>
-#include <linux/tcp.h>
-#include <linux/if_ether.h>
-#include <linux/pkt_cls.h>
-#include <iproute2/bpf_elf.h>
+// go:build ignore
+#include "vmlinux.h"
 
 #include "bpf_endian.h"
 #include "bpf_helpers.h"
+#include "bpf_tracing.h"
 
-#define bpfprint(fmt, ...)                        \
-    ({                                             \
-        char ____fmt[] = fmt;                      \
-        bpf_trace_printk(____fmt, sizeof(____fmt), \
-                         ##__VA_ARGS__);           \
-    })
+#define TC_ACT_OK 0
+#define ETH_P_IP 0x0800 /* Internet Protocol packet        */
 
 struct pair {
-    uint32_t lip; // local IP
-    uint32_t rip; // remote IP
+    __u32 lip; // local IP
+    __u32 rip; // remote IP
 };
 
 struct stats {
-    uint64_t tx_cnt;
-    uint64_t tx_bytes;
+    __u64 tx_cnt;
+    __u64 tx_bytes;
 };
 
 struct {
@@ -38,7 +27,7 @@ struct {
 } trackers SEC(".maps");
 
 static bool parse_ipv4(void* data, void* data_end, struct pair *pair){
-    bpfprint("Entering parse_ipv4\n");
+    bpf_printk("Entering parse_ipv4\n");
     struct ethhdr *eth = data;
     struct iphdr *ip;
 
@@ -53,11 +42,11 @@ static bool parse_ipv4(void* data, void* data_end, struct pair *pair){
     if ((void*) ip + sizeof(struct iphdr) > data_end)
         return false;
 
-    bpfprint("src ip addr1: %d.%d.%d\n",(ip->saddr) & 0xFF,(ip->saddr >> 8) & 0xFF,(ip->saddr >> 16) & 0xFF);
-    bpfprint("src ip addr2:.%d\n",(ip->saddr >> 24) & 0xFF);
+    bpf_printk("src ip addr1: %d.%d.%d\n",(ip->saddr) & 0xFF,(ip->saddr >> 8) & 0xFF,(ip->saddr >> 16) & 0xFF);
+    bpf_printk("src ip addr2:.%d\n",(ip->saddr >> 24) & 0xFF);
 
-    bpfprint("dest ip addr1: %d.%d.%d\n",(ip->daddr) & 0xFF,(ip->daddr >> 8) & 0xFF,(ip->daddr >> 16) & 0xFF);
-    bpfprint("dest ip addr2: .%d\n",(ip->daddr >> 24) & 0xFF);
+    bpf_printk("dest ip addr1: %d.%d.%d\n",(ip->daddr) & 0xFF,(ip->daddr >> 8) & 0xFF,(ip->daddr >> 16) & 0xFF);
+    bpf_printk("dest ip addr2: .%d\n",(ip->daddr >> 24) & 0xFF);
 
     pair->lip = ip->saddr;
     pair->rip = ip->daddr;
@@ -96,5 +85,3 @@ int track_tx(struct __sk_buff *skb)
 }
 
 char _license[] SEC("license") = "GPL";
-
-

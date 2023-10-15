@@ -1,7 +1,9 @@
 //go:build ignore
+#include <linux/if_ether.h>
+#include <linux/ip.h>
+
 #include "bpf_endian.h"
 #include "common.h"
-#include "protocol_hdr.h"
 
 #define MAX_MAP_ENTRIES 16
 
@@ -14,8 +16,8 @@ struct {
 } ip_stats_map SEC(".maps");
 
 /*
-Attempt to parse the IPv4 source address from the packet.
-Returns 0 if there is no IPv4 header field; otherwise returns non-zero.
+    Attempt to parse the IPv4 source address from the packet.
+    Returns 0 if there is no IPv4 header field; otherwise returns non-zero.
 */
 static __always_inline int parse_ip_src_addr(struct xdp_md *ctx,
                                              __u32 *ip_src_addr) {
@@ -23,7 +25,7 @@ static __always_inline int parse_ip_src_addr(struct xdp_md *ctx,
   void *data = (void *)(long)ctx->data;
 
   // First, parse the ethernet header.
-  struct eth_hdr *eth = data;
+  struct ethhdr *eth = data;
   if ((void *)(eth + 1) > data_end) {
     return 0;
   }
@@ -34,13 +36,13 @@ static __always_inline int parse_ip_src_addr(struct xdp_md *ctx,
   }
 
   // Then parse the IP header.
-  struct ip_hdr *ip = (void *)(eth + 1);
+  struct iphdr *ip = (void *)(eth + 1);
   if ((void *)(ip + 1) > data_end) {
     return 0;
   }
 
   // Return the source IP address in network byte order.
-  *ip_src_addr = (__u32)(ip->s_addr);
+  *ip_src_addr = (__u32)(ip->saddr);
   return 1;
 }
 
@@ -54,13 +56,11 @@ int parse_ipv4_func(struct xdp_md *ctx) {
 
   __u32 *pkt_count = bpf_map_lookup_elem(&ip_stats_map, &ip);
   if (!pkt_count) {
-    // No entry in the map for this IP address yet, so set the initial value
-    // to 1.
+    // No entry in the map for this IP address yet, so set the initial value to 1.
     __u32 init_pkt_count = 1;
     bpf_map_update_elem(&ip_stats_map, &ip, &init_pkt_count, BPF_ANY);
   } else {
-    // Entry already exists for this IP address,
-    // so increment it atomically using an LLVM built-in.
+    // Entry already exists for this IP address, so increment it atomically using an LLVM built-in.
     __sync_fetch_and_add(pkt_count, 1);
   }
 

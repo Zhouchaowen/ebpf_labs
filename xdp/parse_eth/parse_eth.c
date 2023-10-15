@@ -1,11 +1,12 @@
 //go:build ignore
-#include "common.h"
-#include "bpf_endian.h"
 #include <stddef.h>
 #include <linux/in.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
 #include <linux/icmp.h>
+
+#include "common.h"
+#include "bpf_endian.h"
 
 // VLAN 最大深度
 #ifndef VLAN_MAX_DEPTH

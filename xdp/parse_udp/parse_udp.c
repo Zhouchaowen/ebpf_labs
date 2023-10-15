@@ -1,7 +1,12 @@
 //go:build ignore
+#include <linux/in.h>
+#include <linux/udp.h>
+#include <linux/if_ether.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
+
 #include "bpf_endian.h"
 #include "common.h"
-#include "protocol_hdr.h"
 
 struct {
   __uint(type, BPF_MAP_TYPE_RINGBUF);
@@ -20,7 +25,7 @@ struct event {
 };
 
 // 上传流量
-static int send_data(struct ip_hdr *ip, struct udp_hdr *udp) {
+static int send_data(struct iphdr *ip, struct udphdr *udp) {
   struct event *e;
   // 必需步骤 判断是否有足够空间
   e = bpf_ringbuf_reserve(&rb, sizeof(*e), 0);
@@ -29,8 +34,8 @@ static int send_data(struct ip_hdr *ip, struct udp_hdr *udp) {
   }
 
   e->protocol = ip->protocol;
-  e->s_addr = ip->s_addr;
-  e->d_addr = ip->d_addr;
+  e->s_addr = ip->saddr;
+  e->d_addr = ip->daddr;
   e->source = bpf_ntohs(udp->source);
   e->dest = bpf_ntohs(udp->dest);
   e->len = bpf_ntohs(udp->len);
@@ -48,31 +53,31 @@ int parse_udp_func(struct xdp_md *ctx) {
   void *data = (void *)(unsigned long)ctx->data;
 
   // 边界检查：检查数据包是否大于完整的以太网 + ip 标头
-  if (data + sizeof(struct eth_hdr) + sizeof(struct ip_hdr) > data_end) {
+  if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) > data_end) {
     return XDP_PASS;
   }
 
-  struct eth_hdr *eth = data;
+  struct ethhdr *eth = data;
 
   // 如果以太网协议不是基于 IP 的，则忽略数据包
   if (eth->h_proto != bpf_htons(ETH_P_IP)) {
     return XDP_PASS;
   }
 
-  struct ip_hdr *ip = data + sizeof(*eth);
+  struct iphdr *ip = data + sizeof(*eth);
   // 判断是否为 UDP 协议
   if (ip->protocol != IPPROTO_UDP) {
     return XDP_PASS;
   }
 
   // 边界检查：检查数据包是否大于完整的以太网 + ip 标头 + udp
-  struct udp_hdr *udp = data + sizeof(struct eth_hdr) + sizeof(struct ip_hdr);
+  struct udphdr *udp = data + sizeof(struct ethhdr) + sizeof(struct iphdr);
   if ((void *)(udp + 1) > data_end) {
     return XDP_PASS;
   }
 
   bpf_printk("-------------UDP--------------");
-  bpf_printk("src_host %d", ip->s_addr);
+  bpf_printk("src_host %d", ip->saddr);
   bpf_printk("src_port_host %d", udp->source);
   bpf_printk("dst_port_host %d %d", bpf_ntohs(udp->dest), bpf_htons(53));
   bpf_printk("udp_len_host %d", udp->len);

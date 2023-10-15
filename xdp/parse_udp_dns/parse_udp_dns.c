@@ -1,8 +1,13 @@
 // go:build ignore
+#include <linux/in.h>
+#include <linux/udp.h>
+#include <linux/if_ether.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
+
 #include "bpf_endian.h"
 #include "common.h"
 #include "protocol_hdr.h"
-#include <netinet/in.h>
 
 struct {
   __uint(type, BPF_MAP_TYPE_RINGBUF);
@@ -61,7 +66,7 @@ int parse_dns_func(struct xdp_md *ctx) {
   void *data = (void *)(long)ctx->data;
 
   // 解析以太网报头
-  struct eth_hdr *eth = data;
+  struct ethhdr *eth = data;
   if ((void *)(eth + 1) > data_end) {
     return XDP_PASS;
   }
@@ -72,7 +77,7 @@ int parse_dns_func(struct xdp_md *ctx) {
   }
 
   // 解析 IP 报头
-  struct ip_hdr *ip = data + sizeof(struct eth_hdr);
+  struct iphdr *ip = data + sizeof(struct ethhdr);
   if ((void *)(ip + 1) > data_end) {
     return XDP_PASS;
   }
@@ -83,7 +88,7 @@ int parse_dns_func(struct xdp_md *ctx) {
   }
 
   // 解析 UDP 报头
-  struct udp_hdr *udp = data + sizeof(struct eth_hdr) + sizeof(struct ip_hdr);
+  struct udphdr *udp = data + sizeof(struct ethhdr) + sizeof(struct iphdr);
   if ((void *)(udp + 1) > data_end) {
     return XDP_PASS;
   }
@@ -93,14 +98,14 @@ int parse_dns_func(struct xdp_md *ctx) {
     return XDP_PASS;
 
   // 解析 UDP 报头
-  struct dns_hdr *dns = (void *)(udp + 1);
+  struct dnshdr *dns = (void *)(udp + 1);
   if ((void *)(dns + 1) > data_end) {
     return XDP_PASS;
   }
 
   bpf_printk("------------udp---------------");
-  bpf_printk("[udp]       src_host %d", ip->s_addr);
-  bpf_printk("[udp]       des_host %d", ip->d_addr);
+  bpf_printk("[udp]       src_host %d", ip->saddr);
+  bpf_printk("[udp]       des_host %d", ip->daddr);
   bpf_printk("[udp]       src_port %d", bpf_htons(udp->source));
   bpf_printk("[udp]       dst_port %d", bpf_htons(udp->dest));
   bpf_printk("[udp]        udp_len %d", bpf_htons(udp->len));
@@ -188,8 +193,8 @@ int parse_dns_func(struct xdp_md *ctx) {
   e->q_class = bpf_htons(query->q_class);
   e->source = bpf_htons(udp->source);
   e->dest = bpf_htons(udp->dest);
-  e->s_addr = ip->s_addr;
-  e->d_addr = ip->d_addr;
+  e->s_addr = ip->saddr;
+  e->d_addr = ip->daddr;
 
   memcpy(e->name, name, name_pos);
 

@@ -11,15 +11,9 @@
 #include "bpf_helpers.h"
 
 typedef unsigned int		u32;
-#define bpfprint(fmt, ...)                        \
-    ({                                             \
-        char ____fmt[] = fmt;                      \
-        bpf_trace_printk(____fmt, sizeof(____fmt), \
-                         ##__VA_ARGS__);           \
-    })
 
 static __inline bool is_TCP(void *data_begin, void *data_end){
-  bpfprint("Entering is_TCP\n");
+  bpf_printk("Entering is_TCP\n");
   struct ethhdr *eth = data_begin;
 
   // Check packet's size
@@ -40,11 +34,11 @@ static __inline bool is_TCP(void *data_begin, void *data_end){
     u32 ip_dst = iph->daddr;
 
     //
-    bpfprint("src ip addr1: %d.%d.%d\n",(ip_src) & 0xFF,(ip_src >> 8) & 0xFF,(ip_src >> 16) & 0xFF);
-    bpfprint("src ip addr2:.%d\n",(ip_src >> 24) & 0xFF);
+    bpf_printk("src ip addr1: %d.%d.%d\n",(ip_src) & 0xFF,(ip_src >> 8) & 0xFF,(ip_src >> 16) & 0xFF);
+    bpf_printk("src ip addr2:.%d\n",(ip_src >> 24) & 0xFF);
 
-    bpfprint("dest ip addr1: %d.%d.%d\n",(ip_dst) & 0xFF,(ip_dst >> 8) & 0xFF,(ip_dst >> 16) & 0xFF);
-    bpfprint("dest ip addr2: .%d\n",(ip_dst >> 24) & 0xFF);
+    bpf_printk("dest ip addr1: %d.%d.%d\n",(ip_dst) & 0xFF,(ip_dst >> 8) & 0xFF,(ip_dst >> 16) & 0xFF);
+    bpf_printk("dest ip addr2: .%d\n",(ip_dst >> 24) & 0xFF);
 
     // Check if IP packet contains a TCP segment
     if (iph->protocol == IPPROTO_TCP)
@@ -57,7 +51,7 @@ SEC("tc")
 int tc_drop_tcp(struct __sk_buff *skb)
 {
 
-  bpfprint("Entering tc section\n");
+  bpf_printk("Entering tc section\n");
   void *data = (void *)(long)skb->data;
   void *data_end = (void *)(long)skb->data_end;
 

@@ -6,12 +6,6 @@
 #include <linux/icmp.h>
 #include <netinet/in.h>
 
-#define bpfprint(fmt, ...)                        \
-    ({                                             \
-        char ____fmt[] = fmt;                      \
-        bpf_trace_printk(____fmt, sizeof(____fmt), \
-                         ##__VA_ARGS__);           \
-    })
 
 struct endpointKey {
   __u32 ip;
@@ -56,11 +50,11 @@ int cls_main(struct __sk_buff *skb) {
   //    __u32 src_ip = htonl(ip->saddr);
   __u32 dst_ip = ip->daddr;
 
-  bpfprint("dest ip: %d",dst_ip);
-  bpfprint("eth->h_source mac: %02x:%02x:%02x",eth->h_source[0],eth->h_source[1],eth->h_source[2]);
-  bpfprint("eth->h_source mac: %02x:%02x:%02x",eth->h_source[3],eth->h_source[4],eth->h_source[5]);
-  bpfprint("eth->h_dest   mac: %02x:%02x:%02x",eth->h_dest[0],eth->h_dest[1],eth->h_dest[2]);
-  bpfprint("eth->h_dest   mac: %02x:%02x:%02x",eth->h_dest[3],eth->h_dest[4],eth->h_dest[5]);
+  bpf_printk("dest ip: %d",dst_ip);
+  bpf_printk("eth->h_source mac: %02x:%02x:%02x",eth->h_source[0],eth->h_source[1],eth->h_source[2]);
+  bpf_printk("eth->h_source mac: %02x:%02x:%02x",eth->h_source[3],eth->h_source[4],eth->h_source[5]);
+  bpf_printk("eth->h_dest   mac: %02x:%02x:%02x",eth->h_dest[0],eth->h_dest[1],eth->h_dest[2]);
+  bpf_printk("eth->h_dest   mac: %02x:%02x:%02x",eth->h_dest[3],eth->h_dest[4],eth->h_dest[5]);
 
   // 拿到 mac 地址
   __u8 src_mac[ETH_ALEN];
@@ -72,10 +66,10 @@ int cls_main(struct __sk_buff *skb) {
   // 在 lxc 中查找
   struct endpointInfo *ep = bpf_map_lookup_elem(&ding_lxc, &epKey);
   if (ep) {
-//    bpfprint("ep->node mac: %02x:%02x:%02x",ep->nodeMac[0],ep->nodeMac[1],ep->nodeMac[2]);
-//    bpfprint("ep->node mac: %02x:%02x:%02x",ep->nodeMac[3],ep->nodeMac[4],ep->nodeMac[5]);
-//    bpfprint("ep->ns   mac: %02x:%02x:%02x",ep->mac[0],ep->mac[1],ep->mac[2]);
-//    bpfprint("ep->ns   mac: %02x:%02x:%02x",ep->mac[3],ep->mac[4],ep->mac[5]);
+//    bpf_printk("ep->node mac: %02x:%02x:%02x",ep->nodeMac[0],ep->nodeMac[1],ep->nodeMac[2]);
+//    bpf_printk("ep->node mac: %02x:%02x:%02x",ep->nodeMac[3],ep->nodeMac[4],ep->nodeMac[5]);
+//    bpf_printk("ep->ns   mac: %02x:%02x:%02x",ep->mac[0],ep->mac[1],ep->mac[2]);
+//    bpf_printk("ep->ns   mac: %02x:%02x:%02x",ep->mac[3],ep->mac[4],ep->mac[5]);
 
     // 如果能找到说明是要发往本机其他 pod 中的，把 mac 地址改成目标 pod 的两对儿 veth 的 mac 地址
     __builtin_memcpy(src_mac, ep->nodeMac, ETH_ALEN);

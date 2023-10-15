@@ -1,48 +1,42 @@
 // +build ignore
-
-#include "bpf_endian.h"
-#include "common.h"
-#include "protocol_hdr.h"
 #include <linux/in.h>
 #include <linux/udp.h>
 #include <linux/if_ether.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 
+#include "bpf_endian.h"
+#include "common.h"
+#include "protocol_hdr.h"
+
 #define MAX_SOCKS 8
 
-// Ensure map references are available.
-/*
-				These will be initiated from go and
-				referenced in the end BPF opcodes by file descriptor
-*/
+struct {
+  __uint(type, BPF_MAP_TYPE_XSKMAP);
+  __uint(max_entries, MAX_SOCKS);
+  __type(key, sizeof(int));
+  __type(value,  sizeof(int));
+} xsks_map SEC(".maps");
 
-struct bpf_map_def SEC("maps") xsks_map = {
-		.type = BPF_MAP_TYPE_XSKMAP,
-		.key_size = sizeof(int),
-		.value_size = sizeof(int),
-		.max_entries = MAX_SOCKS,
-};
-
-struct bpf_map_def SEC("maps") qidconf_map = {
-		.type = BPF_MAP_TYPE_ARRAY,
-		.key_size = sizeof(int),
-		.value_size = sizeof(int),
-		.max_entries = MAX_SOCKS,
-};
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY);
+  __uint(max_entries, MAX_SOCKS);
+  __type(key, sizeof(int));
+  __type(value,  sizeof(int));
+} qidconf_map SEC(".maps");
 
 SEC("xdp_sock")
 int xdp_sock_prog(struct xdp_md *ctx)
 {
 	int index = ctx->rx_queue_index;
 
-	// A set entry here means that the correspnding queue_id
-	// has an active AF_XDP socket bound to it.
+	// A set entry here means that the correspnding queue_id has an active AF_XDP socket bound to it.
 	if (bpf_map_lookup_elem(&qidconf_map, &index))
 	{
 		// redirect packets to an xdp socket that match the given IPv4 or IPv6 protocol; pass all other packets to the kernel
 		void *data = (void *)(long)ctx->data;
 		void *data_end = (void *)(long)ctx->data_end;
+
 		struct ethhdr *eth = data;
 		__u16 h_proto = eth->h_proto;
 		if ((void *)eth + sizeof(*eth) > data_end)
@@ -67,7 +61,7 @@ int xdp_sock_prog(struct xdp_md *ctx)
 		    goto out;
 
 		// 解析 UDP 报头
-        struct dns_hdr *dns = (void *)(udp + 1);
+        struct dnshdr *dns = (void *)(udp + 1);
         if ((void *)(dns + 1) > data_end)
             goto out;
 
