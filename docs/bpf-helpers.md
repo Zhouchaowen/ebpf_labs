@@ -410,7 +410,7 @@ u32 bpf_get_route_realm(struct sk_buff *skb)
 
 该函数返回与数据包的目的地关联的路由的领域（realm），如果没有找到则返回0。
 
-
+## bpf_perf_event_output
 
 ```c
 long bpf_perf_event_output(void *ctx, struct bpf_map *map, u64
@@ -443,7 +443,7 @@ long bpf_perf_event_output(void *ctx, struct bpf_map *map, u64
 
 函数返回0表示成功，或者返回负数错误代码表示失败。
 
-
+## bpf_skb_load_bytes
 
 ```c
 long bpf_skb_load_bytes(const void *skb, u32 offset, void *to, u32 len)
@@ -459,7 +459,7 @@ long bpf_skb_load_bytes(const void *skb, u32 offset, void *to, u32 len)
 
 函数返回0表示成功，或者返回负数错误代码表示失败。
 
-
+## bpf_get_stackid
 
 ```c
 long bpf_get_stackid(void *ctx, struct bpf_map *map, u64 flags)
@@ -487,7 +487,7 @@ long bpf_get_stackid(void *ctx, struct bpf_map *map, u64 flags)
 
 函数返回正数或零表示成功的堆栈ID，或者返回负数错误代码表示失败。
 
-
+## bpf_csum_diff
 
 ```c
 s64 bpf_csum_diff(__be32 *from, u32 from_size, __be32 *to, u32 to_size, __wsum seed)
@@ -509,7 +509,7 @@ s64 bpf_csum_diff(__be32 *from, u32 from_size, __be32 *to, u32 to_size, __wsum s
 
 函数返回校验和的结果，或者在失败的情况下返回负数错误代码。
 
-
+## bpf_skb_get_tunnel_opt
 
 ```c
 long bpf_skb_get_tunnel_opt(struct sk_buff *skb, void *opt, u32 size)
@@ -525,7 +525,7 @@ long bpf_skb_get_tunnel_opt(struct sk_buff *skb, void *opt, u32 size)
 
 函数返回检索到的选项数据的大小。
 
-
+## bpf_skb_set_tunnel_opt
 
 ```c
 long bpf_skb_set_tunnel_opt(struct sk_buff *skb, void *opt, u32 size)
@@ -535,7 +535,7 @@ long bpf_skb_set_tunnel_opt(struct sk_buff *skb, void *opt, u32 size)
 
 **Return:**
 
-
+## bpf_skb_change_proto
 
 ```c
 long bpf_skb_change_proto(struct sk_buff *skb, __be16 proto, u64 flags)
@@ -555,7 +555,7 @@ long bpf_skb_change_proto(struct sk_buff *skb, __be16 proto, u64 flags)
 
 函数在成功时返回0，否则在失败时返回负数错误代码。
 
-
+## bpf_skb_change_type
 
 ```c
 long bpf_skb_change_type(struct sk_buff *skb, u32 type)
@@ -578,7 +578,7 @@ long bpf_skb_change_type(struct sk_buff *skb, u32 type)
 
 函数在成功时返回0，否则在失败时返回负数错误代码。
 
-
+## bpf_skb_under_cgroup
 
 ```c
 long bpf_skb_under_cgroup(struct sk_buff *skb, struct bpf_map *map, u32 index)
@@ -596,7 +596,7 @@ long bpf_skb_under_cgroup(struct sk_buff *skb, struct bpf_map *map, u32 index)
 - 如果 `skb` 通过了cgroup2的后代测试，则返回1。
 - 如果发生错误，则返回负数错误代码。
 
-
+## bpf_get_hash_recalc
 
 ```c
 u32 bpf_get_hash_recalc(struct sk_buff *skb)
@@ -616,7 +616,7 @@ u32 bpf_get_hash_recalc(struct sk_buff *skb)
 
 函数返回32位哈希值。
 
-
+## bpf_get_current_task
 
 ```c
 u64 bpf_get_current_task(void)
@@ -630,7 +630,7 @@ u64 bpf_get_current_task(void)
 
 指向当前任务结构的指针。
 
-
+## bpf_probe_write_user
 
 ```c
 long bpf_probe_write_user(void *dst, const void *src, u32 len)
@@ -650,79 +650,80 @@ long bpf_probe_write_user(void *dst, const void *src, u32 len)
 
 
 
-```c
-long bpf_current_task_under_cgroup(struct bpf_map *map, u32 index)
-```
+## bpf_skb_store_bytes
 
-**Description:**
-
-**Return:**
-
-
-
-**Description:**
-
-**Return:**
-
-**Description:**
-
-**Return:**
-
-**Description:**
-
-**Return:**
-
-**Description:**
-
-**Return:**
-
-
-
-**Description:**
-
-**Return:**
-
-**Description:**
-
-**Return:**
-
-
-
-**Description:**
-
-**Return:**
-
-
-
-**Description:**
-
-**Return:**
-
-**Description:**
-
-**Return:**
-
-
-
-**Description:**
-
-**Return:**
-
-
+函数的作用是将数据包的一部分数据复制到 BPF 虚拟机的内存空间中，从而使得 eBPF 程序可以访问和处理这些数据。
 
 ```c
-
+int bpf_skb_store_bytes(struct __sk_buff *skb,
+                        u32 offset,
+                        const void *from,
+                        u32 len,
+                        u64 flags)
 ```
 
+参数说明：
 
+- `skb`: 指向数据包的 `__sk_buff` 结构的指针，它在 eBPF 程序中表示当前处理的数据包。
+- `offset`: 指定将数据存储在 `skb` 数据包的偏移量位置，相对于数据包的起始位置。
+- `from`: 指向要存储的源数据的指针。这是一个用户空间指针，需要通过 BPF 虚拟机的验证机制确保它是合法的。
+- `len`: 要存储的数据的长度。
+- `flags`: 一些额外的标志参数，目前在大多数情况下设置为 0。
+
+使用 `bpf_skb_store_bytes()` 函数，eBPF 程序可以从数据包中读取感兴趣的部分数据，并对其进行处理。
+
+## load_byte
+
+函数的定义如下:
 
 ```c
-
+unsigned long long load_byte(void *skb,unsigned long long offset) asm("llvm.bpf.load.byte");
 ```
 
+它的功能是：从 `skb` 指向的数据包指针中 offset 位置开始读取 **8-bits** 的数据。 跟 gcc 里的 `__builtin_bpf_load_byte` 函数的功能是一样的。
 
+当想要从 `struct __sk_buff *skb` 中读取数据类型大小为 8-bits（1个字节） 的字段的值的时候， 可以使用 `load_byte` 直接从指针中读取对应的数据。
+
+例子:
 
 ```c
-
+__u8 protocol = load_byte(skb, ETH_HLEN + offsetof(struct iphdr, protocol));
 ```
+
+## bpf_skb_load_bytes
+
+函数的原型如下：
+
+```c
+int bpf_skb_load_bytes(const struct __sk_buff *skb, u32 offset, void *to, u32 len);
+```
+
+参数说明：
+
+- `skb`: 指向数据包的 `__sk_buff` 结构的指针，它在 eBPF 程序中表示当前处理的数据包。
+- `offset`: 指定从数据包的哪个字节开始加载数据。
+- `to`: 指向目标内存区域的指针，用于存储从数据包加载的字节数据。
+- `len`: 要加载的字节数据的长度。
+
+`bpf_skb_load_bytes` 允许 eBPF 程序从数据包中加载指定长度的字节数据，并将其复制到指定的内存位置，以供进一步处理或过滤。
+
+```c
+union v6addr {
+        struct {
+                __u32 p1;
+                __u32 p2;
+                __u32 p3;
+                __u32 p4;
+        };
+        __u8 addr[16];
+};
+static inline __u16 derive_lxc_id(const union v6addr *addr)
+{
+	return ntohl(addr->p4) & 0xFFFF;
+}
+```
+
+
+
+
 

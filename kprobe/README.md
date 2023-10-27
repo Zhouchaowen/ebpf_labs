@@ -16,8 +16,6 @@ int kprobe_vfs_write(struct pt_regs *regs)
 }
 ```
 
-COPY
-
 其中 pt_regs 的结构体如下：
 
 ```c
@@ -58,6 +56,32 @@ struct pt_regs {
 ```
 
 通常来说，我们要获取的参数，均可通过诸如 PT_REGS_PARM1 这样的宏来拿到，宏定义如下：
+
+```bash
+#define PT_REGS_PARM1(x) ((x)->di)
+#define PT_REGS_PARM2(x) ((x)->si)
+#define PT_REGS_PARM3(x) ((x)->dx)
+#define PT_REGS_PARM4(x) ((x)->cx)
+#define PT_REGS_PARM5(x) ((x)->r8)
+```
+
+寄存器如下 (这里对比 x86_64 做说明):
+
+```bash
+R0: RAX, 存放函数返回值或程序退出状态码
+R1: RDI，第一个实参
+R2: RSI，第二个实参
+R3: RDX，第三个实参
+R4: RCX，第四个实参
+R5: R8，第五个实参 
+R6: RBX, callee saved
+R7: R13, callee saved
+R8: R14, callee saved
+R9: R15, callee saved
+R10: RBP, 只读栈帧
+```
+
+通过寄存器的设计，我们可以看到，每个函数调用允许5个参数，这些参数只允许立即数或者指向自己的ebpf栈（通用内核栈是不被允许的）上的指针，所有的内存访问必须先把数据放到ebpf自己的栈上（512字节的栈），才能被ebpf程序进一步操作。
 
 
 

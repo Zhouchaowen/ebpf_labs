@@ -1,3 +1,7 @@
+# ebpf编写场景问题
+
+## 1.C结构体转Go结构体
+
 ```c
 const struct event *unused __attribute__((unused));
 ```
@@ -7,5 +11,6 @@ const struct event *unused __attribute__((unused));
 
 在eBPF程序中，这种用法可能是为了声明一个占位符变量，以防将来可能需要使用它，同时又避免编译器生成未使用变量的警告信息。这在一些情况下可能有用，因为eBPF程序可能会根据特定条件进行动态修改，因此某些变量可能在某些路径上未被使用。标记为`unused`并使用`__attribute__((unused))`可以帮助保持代码的清晰度，并且在需要时可以轻松地引入变量而不引发编译警告。
 
+> 注意可能有内存对齐问题。
 
 
