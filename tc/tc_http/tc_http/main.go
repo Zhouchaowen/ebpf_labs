@@ -1,13 +1,9 @@
 package main
 
 import (
-	"bytes"
-	"context"
-	"encoding/binary"
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/cilium/ebpf/perf"
 	"log"
 	"net"
 	"os"
@@ -25,14 +21,10 @@ import (
 
 var (
 	InterfaceName string
-	Debug         bool
-	Verbose       bool
 )
 
 func init() {
 	flag.StringVar(&InterfaceName, "n", "lo", "a network interface name")
-	flag.BoolVar(&Debug, "d", false, "output debug information")
-	flag.BoolVar(&Verbose, "v", false, "output more detailed information")
 }
 
 func main() {
@@ -81,7 +73,7 @@ func main() {
 
 	// Open a ringbuf reader from userspace RINGBUF map described in the
 	// eBPF C program.
-	rd, err := perf.NewReader(objs.SkbEvents, os.Getpagesize()*1024*4)
+	rd, err := perf.NewReader(objs.HttpEvents, os.Getpagesize()*1024*4)
 	if err != nil {
 		log.Fatalf("creating perf event reader: %s", err)
 	}
@@ -96,28 +88,6 @@ func main() {
 		}
 	}()
 
-	type perfHttpDataEvent struct {
-		Type    uint32
-		DataLen uint32
-		payload []byte
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	// mage http data
-	saveChan := make(chan model, 100)
-	go MageHttp(ctx, saveChan)
-
-	go func() {
-		for {
-			select {
-			case m := <-saveChan:
-				fmt.Printf("%+v\n", m)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
 	for {
 		record, err := rd.Read()
 		if err != nil {
@@ -128,28 +98,10 @@ func main() {
 			log.Printf("reading from reader: %s\n", err)
 			continue
 		}
-		if record.LostSamples != 0 {
-			log.Printf("perf event ring buffer full, dropped %d samples", record.LostSamples)
-			continue
-		}
-		data := perfHttpDataEvent{}
-		buf := bytes.NewBuffer(record.RawSample)
-		if err = binary.Read(buf, binary.LittleEndian, &data.Type); err != nil {
-			return
-		}
-		if err = binary.Read(buf, binary.LittleEndian, &data.DataLen); err != nil {
-			return
-		}
-		tmpData := make([]byte, data.DataLen)
-		if err = binary.Read(buf, binary.LittleEndian, &tmpData); err != nil {
-			return
-		}
-		fmt.Printf("data len:%d\n", data.DataLen)
-		ParseHttp(tmpData)
+		fmt.Printf("record:%+v\n", record)
 	}
 
 	<-stopper
-	cancel()
 	log.Println("Received signal, exiting TC program..")
 }
 

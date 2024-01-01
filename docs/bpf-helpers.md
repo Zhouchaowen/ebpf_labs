@@ -725,5 +725,3 @@ static inline __u16 derive_lxc_id(const union v6addr *addr)
 
 
 
-
-

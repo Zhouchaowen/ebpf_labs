@@ -19,13 +19,12 @@
 #define UDP_HLEN sizeof(struct udphdr)
 #define DNS_HLEN sizeof(struct dns_hdr)
 
-#define HTTP_DATA_MIN_SIZE 91
-#define TC_PACKET_MIN_SIZE 8
+#define TC_PACKET_MIN_SIZE 36
 enum tc_type { Egress, Ingress };
 
 struct http_data_event {
   enum tc_type type;
-  u32 data_len;
+  __u32 data_len;
 };
 
 // BPF programs are limited to a 512-byte stack. We store this value per CPU
@@ -37,62 +36,26 @@ struct {
     __uint(max_entries, 10240);
 } skb_events SEC(".maps");
 
-static __always_inline bool skb_revalidate_data(struct __sk_buff *skb,
-                                                uint8_t **head, uint8_t **tail,
-                                                const u32 offset) {
-    if (*head + offset > *tail) {
-        if (bpf_skb_pull_data(skb, offset) < 0) {
-            return false;
-        }
-
-        *head = (uint8_t *)(long)skb->data;
-        *tail = (uint8_t *)(long)skb->data_end;
-
-        if (*head + offset > *tail) {
-            return false;
-        }
-    }
-
-    return true;
-}
 
 static __inline int capture_packets(struct __sk_buff *skb,enum tc_type type) {
-    // packet data
-    unsigned char *data_start = (void *)(long)skb->data;
-    unsigned char *data_end = (void *)(long)skb->data_end;
-    if (data_start + sizeof(struct ethhdr) > data_end) {
+    // Packet data
+    void *data_start = (void *)(long)skb->data;
+    void *data_end = (void *)(long)skb->data_end;
+
+    // Bounds Check: Check if the packet is larger than the full Ethernet + IP header
+    if (data_start + ETH_HLEN + IP_HLEN + TCP_HLEN > data_end) {
         return TC_ACT_OK;
     }
-
-    uint32_t l4_hdr_off;
 
     // Ethernet headers
     struct ethhdr *eth = (struct ethhdr *)data_start;
-
-    // Simple length check
-    if ((data_start + sizeof(struct ethhdr) + sizeof(struct iphdr)) > data_end) {
-        return TC_ACT_OK;
-    }
-
-    // filter out non-IP packets
-    // TODO support IPv6
     if (eth->h_proto != bpf_htons(ETH_P_IP)) {
-        return TC_ACT_OK;
-    }
-    l4_hdr_off = sizeof(struct ethhdr) + sizeof(struct iphdr);
-    if (!skb_revalidate_data(skb, &data_start, &data_end, l4_hdr_off)) {
         return TC_ACT_OK;
     }
 
     // IP headers
-    struct iphdr *iph = (struct iphdr *)(data_start + sizeof(struct ethhdr));
-    // filter out non-TCP packets
+    struct iphdr *iph = (struct iphdr *)(data_start + ETH_HLEN);
     if (iph->protocol != IPPROTO_TCP) {
-        return TC_ACT_OK;
-    }
-
-    // In theory this is the minimum packet size of an http packet
-    if (len <= HTTP_DATA_MIN_SIZE){
         return TC_ACT_OK;
     }
 
