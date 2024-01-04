@@ -19,6 +19,7 @@ const struct event *unused __attribute__((unused));
 - **tracepoint**
 
 ```bash
+# bpftrace -l 列出所有探针
 $ sudo bpftrace -l 'tracepoint:syscalls:*'
 
 # 查看 sys_enter_openat 详细的数据结构
@@ -70,7 +71,7 @@ $ readelf -s postgres | grep pg_parse_query
 ## 4.查看编译后的ELF
 
 ```bash
-# 编译写的 -g 参数
+# 编译时带 -g 参数。编译后文件会携带 debug_info 信息
  clang \
  -target bpf \
  -I../../headers \
@@ -90,8 +91,15 @@ $ llvm-objdump -S xxx.bpf.o
 [参考](https://zhuanlan.zhihu.com/p/590851484)
 
 - 在 for 循环前面添加 #pragma unroll，进行循环展开，避免指令回跳，但在5.10内核版本是支持有限循环的，所以5.10以下版本有效。
-
 - verifier 会保存栈内存的状态，所以栈的大小是有限的，目前是 512 字节。当栈内存大小超过 512 字节时，则会被 verifier 拒绝。
-
 - 当访问栈时采用变量偏移，会导致无法推测寄存器的状态。所以 4.19 版本只支持常量偏移。下面是使用变量偏移的错误示例
+- 直接使用bpf_trace_printk打印字符串，ebpf运行时问题。替换为：bpf_printk 
+
+```
+libbpf: prog 'pdm_main': bad map relo against '.rodata.str1.1' in section '.rodata.str1.1'
+ERROR: opening BPF object file failed
+Unable to load program
+```
+
+
 

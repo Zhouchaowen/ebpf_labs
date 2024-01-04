@@ -1,9 +1,11 @@
 package main
 
 import (
-	"errors"
+	"bufio"
+	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -11,13 +13,12 @@ import (
 	"syscall"
 
 	"github.com/cilium/ebpf"
-	"github.com/cilium/ebpf/ringbuf"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 )
 
 // $BPF_CLANG and $BPF_CFLAGS are set by the Makefile.
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf tc_http.c -- -I../../headers
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf tc_icmp_ping.c -- -I../../headers
 
 var (
 	InterfaceName string
@@ -51,17 +52,39 @@ func main() {
 		log.Fatalf("create net link failed: %v", err)
 	}
 
-	infIngress, err := attachTC(link, objs.IngressClsFunc, "classifier/ingress", netlink.HANDLE_MIN_INGRESS)
+	inf, err := attachTC(link, objs.PingPong, "tc", netlink.HANDLE_MIN_INGRESS)
 	if err != nil {
 		log.Fatalf("attach tc ingress failed, %v", err)
 	}
-	defer netlink.FilterDel(infIngress)
+	defer netlink.FilterDel(inf)
 
-	infEgress, err := attachTC(link, objs.EgressClsFunc, "classifier/egress", netlink.HANDLE_MIN_EGRESS)
-	if err != nil {
-		log.Fatalf("attach tc egress failed, %v", err)
-	}
-	defer netlink.FilterDel(infEgress)
+	cxt, cancel := context.WithCancel(context.Background())
+	go func(cxt context.Context) {
+		f, err := os.Open("/sys/kernel/debug/tracing/trace_pipe")
+		if err != nil {
+			log.Panicf("open file failed, %v", err)
+		}
+		defer f.Close()
+
+		r := bufio.NewReader(f)
+		for {
+			select {
+			case <-cxt.Done():
+				return
+			default:
+				// ReadLine is a low-level line-reading primitive.
+				// Most callers should use ReadBytes('\n') or ReadString('\n') instead or use a Scanner.
+				bytes, _, err := r.ReadLine()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					panic(err)
+				}
+				log.Println(string(bytes))
+			}
+		}
+	}(cxt)
 
 	log.Printf("Attached TC program to iface %q (index %d)", iface.Name, iface.Index)
 	log.Printf("Press Ctrl-C to exit and remove the program")
@@ -71,37 +94,8 @@ func main() {
 	stopper := make(chan os.Signal, 1)
 	signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
 
-	// Open a ringbuf reader from userspace RINGBUF map described in the
-	// eBPF C program.
-	rd, err := perf.NewReader(objs.HttpEvents, os.Getpagesize()*1024*4)
-	if err != nil {
-		log.Fatalf("creating perf event reader: %s", err)
-	}
-	defer rd.Close()
-
-	// Close the reader when the process receives a signal, which will exit
-	// the read loop.
-	go func() {
-		<-stopper
-		if err := rd.Close(); err != nil {
-			log.Fatalf("closing ringbuf reader: %s", err)
-		}
-	}()
-
-	for {
-		record, err := rd.Read()
-		if err != nil {
-			if errors.Is(err, ringbuf.ErrClosed) {
-				log.Println("Received signal, exiting..")
-				return
-			}
-			log.Printf("reading from reader: %s\n", err)
-			continue
-		}
-		fmt.Printf("record:%+v\n", record)
-	}
-
 	<-stopper
+	cancel()
 	log.Println("Received signal, exiting TC program..")
 }
 
